@@ -4,11 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Informe APR">
 <meta name="theme-color" content="#4472C4">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.json">
 <title>Informe APR — XTREME Mining</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -33,6 +29,7 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
 .btn-save{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);}
 .btn-pdf{background:var(--orange);color:white;}
 .btn-data{background:var(--green);color:white;}
+.btn-send{background:#e53935;color:white;font-size:14px;padding:9px 18px;}
 .tabs-bar{background:white;border-bottom:3px solid var(--blue);display:flex;overflow-x:auto;
   scrollbar-width:none;position:sticky;top:58px;z-index:299;box-shadow:0 2px 6px rgba(0,0,0,.08);}
 .tabs-bar::-webkit-scrollbar{display:none;}
@@ -231,6 +228,7 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
     <div class="saved-ind" id="savedInd">Sin guardar</div>
     <button class="btn-top btn-save" onclick="saveDraft()">💾 <span>Guardar</span></button>
     <button class="btn-top btn-pdf" onclick="exportPDF()">📄 <span>PDF</span></button>
+    <button class="btn-top btn-send" onclick="confirmarEnvio()">📤 <span>Enviar Informe</span></button>
   </div>
 </div>
 <div class="tabs-bar">
@@ -1873,6 +1871,15 @@ async function exportPDF(){
 
   document.getElementById('pdfOverlay').classList.remove('show');
   const apr=(g.apr||'SIN-APR').split(' ')[0].toUpperCase();
+  // Si hay un callback esperando base64 (modo envío), resolver sin descargar
+  if(window._pdfReturnBase64 && window._pdfBase64Resolve){
+    window._pdfReturnBase64=false;
+    const b64=doc.output('datauristring').split(',')[1];
+    const cb=window._pdfBase64Resolve;
+    window._pdfBase64Resolve=null;
+    cb(b64);
+    return;
+  }
   doc.save(`INFORME_APR_G${g.grupo||'?'}_${apr}_${g.turno||'T'}_${g.fecha||'SIN-FECHA'}.pdf`);
   showToast('PDF generado');
 }
@@ -1881,11 +1888,6 @@ async function exportPDF(){
 // TOAST + INIT
 // ═══════════════════════════════════════════════════════════
 function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
-
-// Registrar Service Worker
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
-}
 
 window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('g-fecha').valueAsDate=new Date();
@@ -1897,5 +1899,208 @@ window.addEventListener('DOMContentLoaded',()=>{
   updateWeightBar();autoCalcResumen();markSaved();
 });
 </script>
+
+<!-- Modal confirmación envío -->
+<div id="modalEnvio" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:28px 32px;max-width:340px;width:90%;text-align:center;border-top:5px solid #e53935;">
+    <div style="font-size:36px;margin-bottom:10px;">📤</div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:8px;">¿Seguro que quiere enviar el informe?</div>
+    <div style="font-size:13px;color:#7a7a7a;margin-bottom:20px;">Se generará un PDF y se subirá a la carpeta compartida de Google Drive.</div>
+    <div style="display:flex;gap:12px;justify-content:center;">
+      <button onclick="cerrarModalEnvio()" style="padding:10px 24px;border-radius:6px;border:1.5px solid #ccc;background:white;font-size:14px;font-weight:700;cursor:pointer;">No</button>
+      <button onclick="enviarInforme()" style="padding:10px 24px;border-radius:6px;border:none;background:#e53935;color:white;font-size:14px;font-weight:700;cursor:pointer;">Sí, Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal progreso de envío -->
+<div id="modalProgreso" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:12px;padding:28px 32px;max-width:340px;width:90%;text-align:center;border-top:5px solid #4472C4;">
+    <div id="progresoIcono" style="font-size:36px;margin-bottom:10px;">⏳</div>
+    <div id="progresoMsg" style="font-size:15px;font-weight:800;margin-bottom:6px;">Procesando...</div>
+    <div id="progresoSub" style="font-size:12px;color:#7a7a7a;"></div>
+    <button id="progresoClose" style="display:none;margin-top:18px;padding:10px 28px;border-radius:6px;border:none;background:#4472C4;color:white;font-size:14px;font-weight:700;cursor:pointer;" onclick="cerrarModalProgreso()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+// ─── CONFIGURACIÓN GOOGLE DRIVE ───────────────────────────────────────────────
+const GDRIVE_CLIENT_ID  = '141832032994-thkhnqbgif5mk5n5gfuh6tbvvd3grhb1.apps.googleusercontent.com';
+const GDRIVE_FOLDER_ID  = '1WLUyDq5JMYzc5EYU8BbQC0lW4kJZS7eR';
+const GDRIVE_SCOPE      = 'https://www.googleapis.com/auth/drive.file';
+const PENDING_KEY       = 'apr_pending_uploads';
+
+// ─── MODAL CONFIRMACIÓN ───────────────────────────────────────────────────────
+function confirmarEnvio(){
+  document.getElementById('modalEnvio').style.display='flex';
+}
+function cerrarModalEnvio(){
+  document.getElementById('modalEnvio').style.display='none';
+}
+function cerrarModalProgreso(){
+  document.getElementById('modalProgreso').style.display='none';
+}
+
+function mostrarProgreso(icono, msg, sub, mostrarBoton){
+  const m=document.getElementById('modalProgreso');
+  document.getElementById('progresoIcono').textContent=icono;
+  document.getElementById('progresoMsg').textContent=msg;
+  document.getElementById('progresoSub').textContent=sub||'';
+  document.getElementById('progresoClose').style.display=mostrarBoton?'inline-block':'none';
+  m.style.display='flex';
+}
+
+// ─── COLA OFFLINE ─────────────────────────────────────────────────────────────
+function guardarPendiente(base64, nombre){
+  const pending=JSON.parse(localStorage.getItem(PENDING_KEY)||'[]');
+  pending.push({base64, nombre, ts: Date.now()});
+  localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+}
+function getPendientes(){
+  return JSON.parse(localStorage.getItem(PENDING_KEY)||'[]');
+}
+function eliminarPendiente(ts){
+  const pending=getPendientes().filter(p=>p.ts!==ts);
+  localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+}
+
+// ─── AUTENTICACIÓN GOOGLE ─────────────────────────────────────────────────────
+let _gdriveToken = null;
+
+function obtenerTokenGoogle(){
+  return new Promise((resolve, reject)=>{
+    if(_gdriveToken){ resolve(_gdriveToken); return; }
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: GDRIVE_SCOPE,
+      callback: (resp)=>{
+        if(resp.error){ reject(resp.error); return; }
+        _gdriveToken = resp.access_token;
+        resolve(_gdriveToken);
+      }
+    });
+    client.requestAccessToken();
+  });
+}
+
+// ─── SUBIR PDF A GOOGLE DRIVE ─────────────────────────────────────────────────
+async function subirADrive(pdfBase64, nombreArchivo, token){
+  const byteChars = atob(pdfBase64);
+  const byteArr = new Uint8Array(byteChars.length);
+  for(let i=0;i<byteChars.length;i++) byteArr[i]=byteChars.charCodeAt(i);
+  const blob = new Blob([byteArr],{type:'application/pdf'});
+
+  const metadata = JSON.stringify({name: nombreArchivo, parents:[GDRIVE_FOLDER_ID]});
+  const form = new FormData();
+  form.append('metadata', new Blob([metadata],{type:'application/json'}));
+  form.append('file', blob);
+
+  const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+    method:'POST',
+    headers:{ Authorization:'Bearer '+token },
+    body: form
+  });
+  if(!resp.ok) throw new Error('Error subiendo a Drive: '+resp.status);
+  return await resp.json();
+}
+
+// ─── PROCESO PRINCIPAL DE ENVÍO ───────────────────────────────────────────────
+async function enviarInforme(){
+  cerrarModalEnvio();
+  mostrarProgreso('⏳','Generando PDF...','Comprimiendo imágenes...',false);
+
+  try{
+    // 1. Generar PDF (reutiliza exportPDF pero devuelve base64)
+    const pdfData = await generarPDFBase64();
+    const g = collectData().general || {};
+    const apr = g.codApr || 'APR';
+    const nombrePDF = `INFORME_APR_G${g.grupo||'?'}_${apr}_${g.turno||'T'}_${g.fecha||'SIN-FECHA'}.pdf`;
+
+    // 2. Verificar conexión
+    if(!navigator.onLine){
+      guardarPendiente(pdfData, nombrePDF);
+      mostrarProgreso('📥','Sin conexión - Guardado en cola',
+        'El informe se enviará automáticamente cuando recuperes internet.',true);
+      return;
+    }
+
+    // 3. Autenticar con Google
+    mostrarProgreso('🔑','Autenticando con Google...','',false);
+    let token;
+    try{ token = await obtenerTokenGoogle(); }
+    catch(e){
+      guardarPendiente(pdfData, nombrePDF);
+      mostrarProgreso('⚠️','No se pudo autenticar',
+        'Guardado en cola. Se enviará cuando inicies sesión con Google.',true);
+      return;
+    }
+
+    // 4. Subir a Drive
+    mostrarProgreso('☁️','Subiendo a Google Drive...','Por favor espera...',false);
+    await subirADrive(pdfData, nombrePDF, token);
+    mostrarProgreso('✅','¡Informe enviado!',
+      `${nombrePDF} subido a la carpeta compartida de Drive.`,true);
+
+  } catch(err){
+    console.error(err);
+    mostrarProgreso('❌','Error al enviar','Revisa tu conexión e inténtalo de nuevo.',true);
+  }
+}
+
+// ─── GENERAR PDF EN BASE64 (sin descargar) ────────────────────────────────────
+async function generarPDFBase64(){
+  // Muestra el overlay de PDF para consistencia visual
+  const overlay = document.getElementById('pdfOverlay');
+  if(overlay) overlay.classList.add('show');
+
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'letter'});
+
+  // Reutiliza la misma lógica que exportPDF — llamamos exportPDF
+  // pero interceptamos el save para obtener base64
+  // Solución: llamamos a la misma función interna
+  const base64 = await _buildPDFDoc(doc);
+
+  if(overlay) overlay.classList.remove('show');
+  return base64;
+}
+
+// Función que construye el doc y devuelve base64 o guarda
+async function _buildPDFDoc(doc, doSave){
+  // Llamamos exportPDF pero modificando el save al final
+  // Para no duplicar 200 líneas, usamos un hack: ejecutamos exportPDF
+  // con una bandera global
+  window._pdfReturnBase64 = !doSave;
+  return new Promise((resolve)=>{
+    window._pdfBase64Resolve = resolve;
+    exportPDF();
+  });
+}
+
+// ─── RETOMAR PENDIENTES AL RECUPERAR CONEXIÓN ─────────────────────────────────
+window.addEventListener('online', async ()=>{
+  const pendientes = getPendientes();
+  if(!pendientes.length) return;
+  try{
+    const token = await obtenerTokenGoogle();
+    for(const p of pendientes){
+      try{
+        await subirADrive(p.base64, p.nombre, token);
+        eliminarPendiente(p.ts);
+        showToast('📤 Enviado: '+p.nombre);
+      } catch(e){ console.warn('Fallo subida pendiente:',e); }
+    }
+  } catch(e){ console.warn('No autenticado para reenvíos:',e); }
+});
+
+// ─── CARGAR GOOGLE IDENTITY SERVICES ─────────────────────────────────────────
+(function loadGIS(){
+  const s=document.createElement('script');
+  s.src='https://accounts.google.com/gsi/client';
+  s.async=true; s.defer=true;
+  document.head.appendChild(s);
+})();
+</script>
+
 </body>
 </html>
