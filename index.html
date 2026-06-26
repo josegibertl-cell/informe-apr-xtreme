@@ -228,7 +228,7 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
   </div>
   <div class="topbar-actions">
     <div class="saved-ind" id="savedInd">Sin guardar</div>
-    <button id="btnInstalarApp" class="btn-top btn-install" onclick="instalarApp()" style="display:none;">📲 <span>Instalar App</span></button>
+    <button id="btnInstalarApp" class="btn-top btn-install" onclick="instalarApp()">📲 <span>Instalar App</span></button>
     <button class="btn-top btn-save" onclick="saveDraft()">💾 <span>Guardar</span></button>
     <button class="btn-top btn-pdf" onclick="exportPDF()">📄 <span>PDF</span></button>
     <button class="btn-top btn-send" onclick="confirmarEnvio()">📤 <span>Enviar Informe</span></button>
@@ -1903,6 +1903,43 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 
+<!-- Modal instrucciones instalación -->
+<div id="modalInstalar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:14px;padding:26px 24px;max-width:340px;width:92%;border-top:5px solid #4472C4;">
+    <div style="font-size:32px;text-align:center;margin-bottom:10px;">📲</div>
+    <div style="font-size:16px;font-weight:800;text-align:center;margin-bottom:16px;">Instalar App</div>
+
+    <div style="background:#f0f4ff;border-radius:8px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:800;color:#4472C4;margin-bottom:8px;">📱 Android (Chrome)</div>
+      <ol style="font-size:12px;color:#333;margin:0;padding-left:18px;line-height:1.8;">
+        <li>Toca los <b>3 puntos ⋮</b> arriba a la derecha</li>
+        <li>Selecciona <b>"Añadir a pantalla de inicio"</b></li>
+        <li>Toca <b>Añadir</b></li>
+      </ol>
+    </div>
+
+    <div style="background:#f0f4ff;border-radius:8px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:800;color:#4472C4;margin-bottom:8px;">🍎 iPhone (Safari)</div>
+      <ol style="font-size:12px;color:#333;margin:0;padding-left:18px;line-height:1.8;">
+        <li>Toca el botón <b>Compartir ↑</b> abajo</li>
+        <li>Selecciona <b>"Añadir a pantalla de inicio"</b></li>
+        <li>Toca <b>Añadir</b></li>
+      </ol>
+    </div>
+
+    <div style="background:#f0f4ff;border-radius:8px;padding:14px;margin-bottom:18px;">
+      <div style="font-size:13px;font-weight:800;color:#4472C4;margin-bottom:8px;">💻 Windows (Chrome)</div>
+      <ol style="font-size:12px;color:#333;margin:0;padding-left:18px;line-height:1.8;">
+        <li>Toca los <b>3 puntos ⋮</b> arriba a la derecha</li>
+        <li>Selecciona <b>"Guardar e compartir"</b> → <b>"Crear acceso directo"</b></li>
+        <li>Marca <b>"Abrir como ventana"</b> y haz clic en <b>Crear</b></li>
+      </ol>
+    </div>
+
+    <button onclick="document.getElementById('modalInstalar').style.display='none'" style="width:100%;padding:12px;border-radius:8px;border:none;background:#4472C4;color:white;font-size:14px;font-weight:800;cursor:pointer;">Entendido</button>
+  </div>
+</div>
+
 <!-- Modal confirmación envío -->
 <div id="modalEnvio" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:white;border-radius:12px;padding:28px 32px;max-width:340px;width:90%;text-align:center;border-top:5px solid #e53935;">
@@ -2115,17 +2152,18 @@ window.addEventListener('appinstalled', () => {
 });
 
 async function instalarApp(){
-  if(!_deferredInstallPrompt){
-    showToast('Usa el menú del navegador → Añadir a pantalla de inicio');
+  if(_deferredInstallPrompt){
+    _deferredInstallPrompt.prompt();
+    const { outcome } = await _deferredInstallPrompt.userChoice;
+    if(outcome === 'accepted'){
+      _deferredInstallPrompt = null;
+      const btn = document.getElementById('btnInstalarApp');
+      if(btn) btn.style.display = 'none';
+    }
     return;
   }
-  _deferredInstallPrompt.prompt();
-  const { outcome } = await _deferredInstallPrompt.userChoice;
-  if(outcome === 'accepted'){
-    _deferredInstallPrompt = null;
-    const btn = document.getElementById('btnInstalarApp');
-    if(btn) btn.style.display = 'none';
-  }
+  // Si no hay prompt disponible, mostrar modal con instrucciones
+  document.getElementById('modalInstalar').style.display = 'flex';
 }
 
 // ─── CARGAR GOOGLE IDENTITY SERVICES ─────────────────────────────────────────
