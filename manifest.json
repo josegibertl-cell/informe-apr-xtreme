@@ -2,12 +2,14 @@
   "name": "Informe APR — XTREME Mining",
   "short_name": "Informe APR",
   "description": "Aplicación de informe APR para XTREME Mining",
-  "start_url": "/informe-apr-xtreme/",
+  "start_url": "/informe-apr-xtreme/index.html",
   "scope": "/informe-apr-xtreme/",
-  "display": "standalone",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "background_color": "#4472C4",
   "theme_color": "#4472C4",
   "orientation": "portrait",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icon-192.png",
