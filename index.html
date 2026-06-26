@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#4472C4">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Informe APR Xtreme">
+<meta name="apple-mobile-web-app-title" content="Informe APR">
+<meta name="theme-color" content="#4472C4">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
 <title>Informe APR — XTREME Mining</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -32,7 +32,6 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
   display:flex;align-items:center;gap:5px;min-height:var(--tap);-webkit-appearance:none;}
 .btn-save{background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);}
 .btn-pdf{background:var(--orange);color:white;}
-.btn-email{background:#00897b;color:white;}
 .btn-data{background:var(--green);color:white;}
 .tabs-bar{background:white;border-bottom:3px solid var(--blue);display:flex;overflow-x:auto;
   scrollbar-width:none;position:sticky;top:58px;z-index:299;box-shadow:0 2px 6px rgba(0,0,0,.08);}
@@ -84,7 +83,7 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
 .check-btn.ok{background:#e8f5e9;border-color:#4caf50;color:#4caf50;}
 .check-btn.no{background:#fde8e8;border-color:var(--red);color:var(--red);}
 .check-btn.na{background:#fff9e6;border-color:var(--amber);color:#999;font-size:10px;}
-.postura-input{width:82px;border:1px solid var(--border);border-radius:6px;padding:6px;font-size:14px;text-align:center;background:#fafafa;-webkit-appearance:none;}
+.postura-input{width:110px;border:1px solid var(--border);border-radius:6px;padding:6px;font-size:12px;text-align:center;background:#fafafa;-webkit-appearance:none;}
 .item-card{border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
 .item-header{padding:14px;font-weight:700;font-size:14px;display:flex;align-items:center;
   justify-content:space-between;cursor:pointer;user-select:none;min-height:var(--tap);}
@@ -217,37 +216,6 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
   .export-grid{grid-template-columns:1fr 1fr;}
   .art-check-row{flex-direction:column;align-items:flex-start;gap:8px;}
 }
-
-/* PWA Install Banner */
-#install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--blue-dark);
-  color:white;padding:14px 16px;z-index:9997;align-items:center;gap:12px;
-  box-shadow:0 -3px 12px rgba(0,0,0,.25);padding-bottom:calc(env(safe-area-inset-bottom,0)+14px);}
-#install-banner.show{display:flex;}
-#install-banner .ib-text{flex:1;font-size:13px;font-weight:700;line-height:1.4;}
-#install-banner .ib-sub{font-size:11px;font-weight:400;opacity:.8;}
-#install-banner .ib-btn{background:white;color:var(--blue);border:none;border-radius:8px;
-  padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0;}
-#install-banner .ib-close{background:none;border:none;color:white;font-size:20px;cursor:pointer;
-  padding:4px 8px;opacity:.7;flex-shrink:0;}
-/* Email modal */
-#email-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;
-  align-items:center;justify-content:center;padding:20px;}
-#email-modal.show{display:flex;}
-.email-box{background:white;border-radius:14px;padding:24px;max-width:420px;width:100%;
-  border-top:5px solid #00897b;box-shadow:0 8px 32px rgba(0,0,0,.3);}
-.email-box h3{font-size:17px;font-weight:800;color:#00897b;margin-bottom:6px;}
-.email-box p{font-size:13px;color:var(--gray3);margin-bottom:16px;line-height:1.5;}
-.email-steps{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
-.email-step{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
-  background:#f0faf8;border-radius:8px;border-left:3px solid #00897b;}
-.email-step .es-num{background:#00897b;color:white;border-radius:50%;width:22px;height:22px;
-  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;margin-top:1px;}
-.email-step .es-txt{font-size:13px;color:#333;line-height:1.4;}
-.email-box-actions{display:flex;gap:10px;}
-.email-box-actions button{flex:1;padding:13px;border-radius:8px;border:none;font-size:14px;
-  font-weight:800;cursor:pointer;min-height:44px;}
-.btn-go-email{background:#00897b;color:white;}
-.btn-cancel-email{background:#f0f0f0;color:#555;}
 </style>
 </head>
 <body>
@@ -263,7 +231,6 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
     <div class="saved-ind" id="savedInd">Sin guardar</div>
     <button class="btn-top btn-save" onclick="saveDraft()">💾 <span>Guardar</span></button>
     <button class="btn-top btn-pdf" onclick="exportPDF()">📄 <span>PDF</span></button>
-    <button class="btn-top btn-email" onclick="openEmailModal()">📧 <span>Enviar</span></button>
   </div>
 </div>
 <div class="tabs-bar">
@@ -1915,6 +1882,11 @@ async function exportPDF(){
 // ═══════════════════════════════════════════════════════════
 function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
+// Registrar Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('g-fecha').valueAsDate=new Date();
   buildTable('conf');buildTable('pil');
@@ -1925,41 +1897,5 @@ window.addEventListener('DOMContentLoaded',()=>{
   updateWeightBar();autoCalcResumen();markSaved();
 });
 </script>
-<!-- PWA Install Banner -->
-<div id="install-banner">
-  <div class="ib-text">
-    Instalar como App
-    <div class="ib-sub">Acceso rápido · Funciona sin internet</div>
-  </div>
-  <button class="ib-btn" onclick="installPWA()">Instalar</button>
-  <button class="ib-close" onclick="dismissInstall()">✕</button>
-</div>
-
-<!-- Email Send Modal -->
-<div id="email-modal">
-  <div class="email-box">
-    <h3>📧 Enviar Informe por Correo</h3>
-    <p>El informe se enviará a <strong>jgibert@xtrememining.cl</strong>. Sigue estos pasos:</p>
-    <div class="email-steps">
-      <div class="email-step">
-        <div class="es-num">1</div>
-        <div class="es-txt">Descarga el PDF tocando <strong>"Generar PDF"</strong></div>
-      </div>
-      <div class="email-step">
-        <div class="es-num">2</div>
-        <div class="es-txt">Se abrirá tu correo con el destinatario y asunto prellenados</div>
-      </div>
-      <div class="email-step">
-        <div class="es-num">3</div>
-        <div class="es-txt">Adjunta el PDF descargado y toca <strong>"Enviar"</strong></div>
-      </div>
-    </div>
-    <div class="email-box-actions">
-      <button class="btn-go-email" onclick="generateAndEmail()">📄 Generar PDF y Abrir Correo</button>
-      <button class="btn-cancel-email" onclick="closeEmailModal()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
