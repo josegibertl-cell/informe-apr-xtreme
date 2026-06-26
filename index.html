@@ -30,6 +30,8 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
 .btn-pdf{background:var(--orange);color:white;}
 .btn-data{background:var(--green);color:white;}
 .btn-send{background:#e53935;color:white;font-size:14px;padding:9px 18px;}
+.btn-install{background:#4472C4;color:white;border:2px solid rgba(255,255,255,.5);animation:pulse-install 2s infinite;}
+@keyframes pulse-install{0%,100%{opacity:1;}50%{opacity:.75;}}
 .tabs-bar{background:white;border-bottom:3px solid var(--blue);display:flex;overflow-x:auto;
   scrollbar-width:none;position:sticky;top:58px;z-index:299;box-shadow:0 2px 6px rgba(0,0,0,.08);}
 .tabs-bar::-webkit-scrollbar{display:none;}
@@ -226,6 +228,7 @@ body{font-family:var(--font);background:#eef2f7;color:#222;font-size:15px;-webki
   </div>
   <div class="topbar-actions">
     <div class="saved-ind" id="savedInd">Sin guardar</div>
+    <button id="btnInstalarApp" class="btn-top btn-install" onclick="instalarApp()" style="display:none;">📲 <span>Instalar App</span></button>
     <button class="btn-top btn-save" onclick="saveDraft()">💾 <span>Guardar</span></button>
     <button class="btn-top btn-pdf" onclick="exportPDF()">📄 <span>PDF</span></button>
     <button class="btn-top btn-send" onclick="confirmarEnvio()">📤 <span>Enviar Informe</span></button>
@@ -2092,6 +2095,38 @@ window.addEventListener('online', async ()=>{
     }
   } catch(e){ console.warn('No autenticado para reenvíos:',e); }
 });
+
+// ─── PWA INSTALL PROMPT ──────────────────────────────────────────────────────
+let _deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Mostrar botón de instalación
+  const btn = document.getElementById('btnInstalarApp');
+  if(btn) btn.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  _deferredInstallPrompt = null;
+  const btn = document.getElementById('btnInstalarApp');
+  if(btn) btn.style.display = 'none';
+  showToast('✅ App instalada correctamente');
+});
+
+async function instalarApp(){
+  if(!_deferredInstallPrompt){
+    showToast('Usa el menú del navegador → Añadir a pantalla de inicio');
+    return;
+  }
+  _deferredInstallPrompt.prompt();
+  const { outcome } = await _deferredInstallPrompt.userChoice;
+  if(outcome === 'accepted'){
+    _deferredInstallPrompt = null;
+    const btn = document.getElementById('btnInstalarApp');
+    if(btn) btn.style.display = 'none';
+  }
+}
 
 // ─── CARGAR GOOGLE IDENTITY SERVICES ─────────────────────────────────────────
 (function loadGIS(){
